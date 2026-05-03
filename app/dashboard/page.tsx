@@ -301,21 +301,27 @@ export default function Dashboard() {
         style={{ height: "calc(100vh - 56px)", backgroundColor: "var(--bg-primary)" }}
       >
         {showMap ? (
-          /* Map view — flex column so the bottom bar never overlaps the map */
-          <div className="flex flex-col h-full w-full">
+          /*
+           * Map view — position-based layout so the bottom bar is always
+           * visible. flex-col + h-full chains fail on mobile because
+           * flex-1 children don't give Leaflet a resolved pixel height.
+           * inset-0/bottom-[52px] gives the map a hard pixel boundary.
+           */
+          <div className="relative h-full w-full">
 
-            {/* Map fills all space above the nav bar */}
-            <div className="flex-1 overflow-hidden min-h-0">
+            {/* Map: fills everything above the 52 px bar */}
+            <div className="absolute inset-0 bottom-[52px] overflow-hidden">
               <MapPanel events={events} selectedEventId={selectedEventId} isMobile />
             </div>
 
-            {/* Persistent bottom navigation bar */}
+            {/* Persistent bottom navigation bar — always pinned to bottom */}
             <div
-              className="flex-shrink-0 flex items-center justify-between px-4 border-t"
+              className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 border-t"
               style={{
                 height:          "52px",
                 backgroundColor: "var(--bg-elevated)",
                 borderColor:     "var(--border-c)",
+                zIndex:          3000,
               }}
             >
               <button
