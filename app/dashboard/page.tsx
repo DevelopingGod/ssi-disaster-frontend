@@ -302,42 +302,71 @@ export default function Dashboard() {
       >
         {showMap ? (
           /*
-           * Map view — position-based layout so the bottom bar is always
-           * visible. flex-col + h-full chains fail on mobile because
-           * flex-1 children don't give Leaflet a resolved pixel height.
-           * inset-0/bottom-[52px] gives the map a hard pixel boundary.
+           * Full-viewport fixed overlay — bypasses every height-chain
+           * and 100vh mobile-browser quirk. Leaflet always gets exact pixels.
            */
-          <div className="relative h-full w-full">
-
-            {/* Map: fills everything above the 52 px bar */}
-            <div className="absolute inset-0 bottom-[52px] overflow-hidden">
+          <div
+            style={{
+              position: "fixed",
+              top: 0, left: 0, right: 0, bottom: 0,
+              zIndex: 9999,
+              background: "var(--bg-primary)",
+            }}
+          >
+            {/* Map: full screen minus the 52 px bar */}
+            <div
+              style={{
+                position: "absolute",
+                top: 0, left: 0, right: 0,
+                bottom: "52px",
+                overflow: "hidden",
+              }}
+            >
               <MapPanel events={events} selectedEventId={selectedEventId} isMobile />
             </div>
 
-            {/* Persistent bottom navigation bar — always pinned to bottom */}
+            {/* Bottom bar — always on top of everything */}
             <div
-              className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 border-t"
               style={{
-                height:          "52px",
+                position: "absolute",
+                bottom: 0, left: 0, right: 0,
+                height: "52px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "0 1rem",
                 backgroundColor: "var(--bg-elevated)",
-                borderColor:     "var(--border-c)",
-                zIndex:          3000,
+                borderTop: "1px solid var(--border-c)",
+                zIndex: 10000,
               }}
             >
               <button
                 onClick={() => setShowMap(false)}
-                className="flex items-center gap-2 px-4 py-2 border text-[0.625rem] font-mono uppercase tracking-widest transition-opacity active:opacity-70"
                 style={{
-                  borderColor:     "var(--accent)",
-                  color:           "var(--accent)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  padding: "0.5rem 1rem",
+                  border: "1px solid var(--accent)",
+                  color: "var(--accent)",
                   backgroundColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
+                  fontFamily: "monospace",
+                  fontSize: "0.625rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  cursor: "pointer",
                 }}
               >
                 ← Back to Chat
               </button>
               <span
-                className="text-[0.5rem] font-mono uppercase tracking-widest"
-                style={{ color: "var(--text-muted)" }}
+                style={{
+                  fontFamily: "monospace",
+                  fontSize: "0.5rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  color: "var(--text-muted)",
+                }}
               >
                 {events.length} event{events.length !== 1 ? "s" : ""} plotted
               </span>
