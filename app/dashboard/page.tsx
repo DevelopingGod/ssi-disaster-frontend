@@ -9,6 +9,8 @@ import type { ChatMessage, ConversationTurn, DisasterEvent } from "@/lib/types";
 
 const MapPanel = dynamic(() => import("@/components/MapPanel"), { ssr: false });
 
+const MOBILE_BREAKPOINT = 768;
+
 // ── Storage helpers ──────────────────────────────────────────────────────────
 const SK = {
   messages:  "disaster-io:messages",
@@ -56,6 +58,7 @@ export default function Dashboard() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [showMap, setShowMap]                 = useState(true);
   const [chatWidth, setChatWidth]             = useState(CHAT_WIDTH_DEFAULT);
+  const [isMobile, setIsMobile]               = useState(false);
 
   // Conversation history ref — no re-render on change; synced to localStorage after mount
   const conversationHistoryRef = useRef<ConversationTurn[]>([]);
@@ -90,6 +93,14 @@ export default function Dashboard() {
   useEffect(() => { if (mounted) saveJson(SK.events,    events);    }, [mounted, events]);
   useEffect(() => { if (mounted) saveJson(SK.showMap,   showMap);   }, [mounted, showMap]);
   useEffect(() => { if (mounted) saveJson(SK.chatWidth, chatWidth); }, [mounted, chatWidth]);
+
+  // ── Mobile detection ─────────────────────────────────────────────────────
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    check(); // Run immediately on mount
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // ── Resize listeners (document-level, stable refs) ───────────────────────
   useEffect(() => {
@@ -270,6 +281,59 @@ export default function Dashboard() {
     });
   };
 
+  // ── Shared props for ChatPanel ───────────────────────────────────────────
+  const chatPanelProps = {
+    messages,
+    onSend:        handleSend,
+    onClearChat:   handleClearChat,
+    loading,
+    warnings,
+    mounted,
+  };
+
+  // ── Mobile layout — full-screen tab switch (chat OR map) ─────────────────
+  if (isMobile) {
+    return (
+      <main
+        className="flex w-full overflow-hidden"
+        style={{ height: "calc(100vh - 56px)", backgroundColor: "var(--bg-primary)" }}
+      >
+        {showMap ? (
+          /* Full-screen map with a floating "Back to Chat" button */
+          <div className="relative h-full w-full">
+            <MapPanel events={events} selectedEventId={selectedEventId} />
+
+            <button
+              onClick={() => setShowMap(false)}
+              className="absolute top-3 left-3 z-[1000] flex items-center gap-2 px-3 py-2 text-[0.625rem] font-mono uppercase tracking-widest border shadow-lg transition-opacity hover:opacity-80"
+              style={{
+                backgroundColor: "var(--bg-elevated)",
+                borderColor:     "var(--border-c)",
+                color:           "var(--text-secondary)",
+              }}
+            >
+              ← Back to Chat
+            </button>
+          </div>
+        ) : (
+          /* Full-screen chat; toggle button switches to map view */
+          <div className="h-full w-full overflow-hidden">
+            <ChatPanel
+              {...chatPanelProps}
+              showMap={false}
+              onToggleMap={() => setShowMap(true)}
+              onMessageClick={(id) => {
+                setSelectedEventId(id);
+                setShowMap(true); // Auto-switch to map when a pinned event is tapped
+              }}
+            />
+          </div>
+        )}
+      </main>
+    );
+  }
+
+  // ── Desktop layout — resizable split grid ────────────────────────────────
   return (
     <main
       className="flex w-full overflow-hidden"
@@ -291,15 +355,10 @@ export default function Dashboard() {
           {/* Chat panel */}
           <div className="h-full overflow-hidden min-w-0">
             <ChatPanel
-              messages={messages}
-              onSend={handleSend}
-              onMessageClick={setSelectedEventId}
-              onClearChat={handleClearChat}
-              loading={loading}
-              warnings={warnings}
+              {...chatPanelProps}
               showMap={showMap}
               onToggleMap={() => setShowMap(false)}
-              mounted={mounted}
+              onMessageClick={setSelectedEventId}
             />
           </div>
 
@@ -327,15 +386,10 @@ export default function Dashboard() {
         /* ── Chat-only view ── */
         <div className="h-full w-full overflow-hidden">
           <ChatPanel
-            messages={messages}
-            onSend={handleSend}
-            onMessageClick={setSelectedEventId}
-            onClearChat={handleClearChat}
-            loading={loading}
-            warnings={warnings}
+            {...chatPanelProps}
             showMap={showMap}
             onToggleMap={() => setShowMap(true)}
-            mounted={mounted}
+            onMessageClick={setSelectedEventId}
           />
         </div>
       )}
