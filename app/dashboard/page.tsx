@@ -75,7 +75,9 @@ export default function Dashboard() {
     const storedMessages = loadJson<ChatMessage[]>(SK.messages, []);
     setMessages(storedMessages);
     setEvents(loadJson<DisasterEvent[]>(SK.events, []));
-    setShowMap(loadJson<boolean>(SK.showMap, true));
+    // On mobile always start on chat — don't restore a desktop "map open" state
+    const mobileNow = window.innerWidth < MOBILE_BREAKPOINT;
+    setShowMap(mobileNow ? false : loadJson<boolean>(SK.showMap, true));
     setChatWidth(loadJson<number>(SK.chatWidth, CHAT_WIDTH_DEFAULT));
     conversationHistoryRef.current = loadJson<ConversationTurn[]>(SK.history, []);
     setMounted(true);
@@ -299,21 +301,41 @@ export default function Dashboard() {
         style={{ height: "calc(100vh - 56px)", backgroundColor: "var(--bg-primary)" }}
       >
         {showMap ? (
-          /* Full-screen map with a floating "Back to Chat" button */
-          <div className="relative h-full w-full">
-            <MapPanel events={events} selectedEventId={selectedEventId} />
+          /* Map view — flex column so the bottom bar never overlaps the map */
+          <div className="flex flex-col h-full w-full">
 
-            <button
-              onClick={() => setShowMap(false)}
-              className="absolute top-3 left-3 z-[1000] flex items-center gap-2 px-3 py-2 text-[0.625rem] font-mono uppercase tracking-widest border shadow-lg transition-opacity hover:opacity-80"
+            {/* Map fills all space above the nav bar */}
+            <div className="flex-1 overflow-hidden min-h-0">
+              <MapPanel events={events} selectedEventId={selectedEventId} isMobile />
+            </div>
+
+            {/* Persistent bottom navigation bar */}
+            <div
+              className="flex-shrink-0 flex items-center justify-between px-4 border-t"
               style={{
+                height:          "52px",
                 backgroundColor: "var(--bg-elevated)",
                 borderColor:     "var(--border-c)",
-                color:           "var(--text-secondary)",
               }}
             >
-              ← Back to Chat
-            </button>
+              <button
+                onClick={() => setShowMap(false)}
+                className="flex items-center gap-2 px-4 py-2 border text-[0.625rem] font-mono uppercase tracking-widest transition-opacity active:opacity-70"
+                style={{
+                  borderColor:     "var(--accent)",
+                  color:           "var(--accent)",
+                  backgroundColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
+                }}
+              >
+                ← Back to Chat
+              </button>
+              <span
+                className="text-[0.5rem] font-mono uppercase tracking-widest"
+                style={{ color: "var(--text-muted)" }}
+              >
+                {events.length} event{events.length !== 1 ? "s" : ""} plotted
+              </span>
+            </div>
           </div>
         ) : (
           /* Full-screen chat; toggle button switches to map view */
