@@ -302,8 +302,8 @@ export default function Dashboard() {
       >
         {showMap ? (
           /*
-           * Full-viewport fixed overlay — bypasses every height-chain
-           * and 100vh mobile-browser quirk. Leaflet always gets exact pixels.
+           * Fixed full-viewport overlay. Nav bar sits at the TOP (never
+           * cut off by Android system navigation). Map fills below it.
            */
           <div
             style={{
@@ -313,30 +313,18 @@ export default function Dashboard() {
               background: "var(--bg-primary)",
             }}
           >
-            {/* Map: full screen minus the 52 px bar */}
+            {/* TOP bar — always the first thing the user sees */}
             <div
               style={{
                 position: "absolute",
                 top: 0, left: 0, right: 0,
-                bottom: "52px",
-                overflow: "hidden",
-              }}
-            >
-              <MapPanel events={events} selectedEventId={selectedEventId} isMobile />
-            </div>
-
-            {/* Bottom bar — always on top of everything */}
-            <div
-              style={{
-                position: "absolute",
-                bottom: 0, left: 0, right: 0,
                 height: "52px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
                 padding: "0 1rem",
                 backgroundColor: "var(--bg-elevated)",
-                borderTop: "1px solid var(--border-c)",
+                borderBottom: "1px solid var(--border-c)",
                 zIndex: 10000,
               }}
             >
@@ -370,6 +358,17 @@ export default function Dashboard() {
               >
                 {events.length} event{events.length !== 1 ? "s" : ""} plotted
               </span>
+            </div>
+
+            {/* Map: everything below the top bar */}
+            <div
+              style={{
+                position: "absolute",
+                top: "52px", left: 0, right: 0, bottom: 0,
+                overflow: "hidden",
+              }}
+            >
+              <MapPanel events={events} selectedEventId={selectedEventId} isMobile />
             </div>
           </div>
         ) : (
